@@ -79,4 +79,6 @@ RSpec.configure do |config|
   config.before(:each, js: true) { DatabaseCleaner.strategy = :truncation }
   config.before(:each) { DatabaseCleaner.start }
   config.after(:each) { DatabaseCleaner.clean }
+
+  Dir[Rails.root.join("spec/shared_examples/**/*.rb")].each { |f| require f }
 end
