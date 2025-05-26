@@ -12,8 +12,6 @@ RSpec.describe Policy, type: :model do
   describe "validations" do
     it "is valid with all required attributes" do
       policy = build(:policy, provider: provider, employer: employer, number: "P12345", start_date: Date.today, end_date: Date.today + 1.day)
-      puts policy.valid?
-      puts policy.errors.full_messages
       expect(policy).to be_valid
     end
 
