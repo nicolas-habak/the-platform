@@ -80,5 +80,14 @@ RSpec.configure do |config|
   config.before(:each) { DatabaseCleaner.start }
   config.after(:each) { DatabaseCleaner.clean }
 
-  Dir[Rails.root.join("spec/shared_examples/**/*.rb")].each { |f| require f }
+  Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
+
+  Shoulda::Matchers.configure do |shoulda_config|
+    shoulda_config.integrate do |with|
+      with.test_framework :rspec
+      with.library :active_record
+      with.library :active_model
+      with.library :action_controller
+    end
+  end
 end
