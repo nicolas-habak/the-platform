@@ -1,4 +1,4 @@
-# spec/support/shared_examples/unauthorized_response.rb (or anywhere in your spec)
+# spec/support/shared_examples/response.rb
 RSpec.shared_examples "an unauthorized response" do
   it "returns unauthorized" do
     expect(response).to have_http_status(:unauthorized)

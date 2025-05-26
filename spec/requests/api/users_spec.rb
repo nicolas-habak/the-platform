@@ -1,15 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Users API", type: :request do
-  let!(:users) do
-    [ create(:admin_user) ] + create_list(:employee_user, 4)
-  end
-
-  let!(:admin_user) { User.first }
-  let!(:employee_user) { User.second }
-
-  let!(:admin_token) { admin_user.regenerate_token && admin_user.token }
-  let!(:employee_token) { employee_user.regenerate_token && employee_user.token }
+  include_context "with authenticated users"
 
   describe 'GET /api/users' do
     context 'with valid token' do
@@ -23,7 +15,7 @@ RSpec.describe "Users API", type: :request do
           response_body = JSON.parse(response.body)
 
           expect(response_body).to be_an(Array)
-          expect(response_body.length).to eq(5)
+          expect(response_body.length).to eq(users.count)
 
           response_body.each do |user|
             expect(user).to have_key('id')
@@ -39,10 +31,10 @@ RSpec.describe "Users API", type: :request do
 
       context 'employee user' do
         before do
-          get api_users_path, headers: { Authorization: "Bearer #{employee_token}" }
+          get api_users_path, headers: { Authorization: "Bearer #{actuary_user_token}" }
         end
 
-        include_examples "an unauthorized response"
+        it_behaves_like "an unauthorized response"
       end
     end
 
@@ -51,7 +43,7 @@ RSpec.describe "Users API", type: :request do
         get api_users_path, headers: { 'Authorization' => 'Bearer invalidtoken123' }
       end
 
-      include_examples "an unauthorized response"
+      it_behaves_like "an unauthorized response"
     end
 
     context 'without token' do
@@ -59,65 +51,67 @@ RSpec.describe "Users API", type: :request do
         get api_users_path
       end
 
-      include_examples "an unauthorized response"
+      it_behaves_like "an unauthorized response"
     end
   end
 
   describe 'GET /api/users/:id' do
     context 'with valid token' do
       context 'as an admin user' do
-        before do
-          get api_user_path(employee_user), headers: { Authorization: "Bearer #{admin_token}" }
-        end
-
         it 'returns the specified user details' do
+          get api_user_path(actuary_user), headers: { Authorization: "Bearer #{admin_token}" }
           expect(response).to have_http_status(200)
           response_body = JSON.parse(response.body)
-          expect(response_body).to include('id' => employee_user.id)
+          expect(response_body).to include('id' => actuary_user.id)
+        end
+
+        before { get api_user_path(99999), headers: { Authorization: "Bearer #{admin_token}" } }
+        it "returns not found" do
+          expect(response).to have_http_status(:not_found)
         end
       end
 
       context 'as an employee viewing their own record' do
         before do
-          get api_user_path(employee_user), headers: { Authorization: "Bearer #{employee_token}" }
+          get api_user_path(actuary_user), headers: { Authorization: "Bearer #{actuary_user_token}" }
         end
 
         it 'returns the employee’s own details' do
           expect(response).to have_http_status(200)
           response_body = JSON.parse(response.body)
-          expect(response_body).to include('id' => employee_user.id)
+          expect(response_body).to include('id' => actuary_user.id)
         end
       end
 
       context 'as an employee attempting to view another user’s record' do
         before do
-          get api_user_path(admin_user), headers: { Authorization: "Bearer #{employee_token}" }
+          get api_user_path(admin_user), headers: { Authorization: "Bearer #{actuary_user_token}" }
         end
 
-        include_examples "an unauthorized response"
+        it_behaves_like "an unauthorized response"
       end
     end
 
     context 'with invalid token' do
       before do
-        get api_user_path(employee_user), headers: { 'Authorization' => 'Bearer invalidtoken123' }
+        get api_user_path(actuary_user), headers: { 'Authorization' => 'Bearer invalidtoken123' }
       end
 
-      include_examples "an unauthorized response"
+      it_behaves_like "an unauthorized response"
     end
 
     context 'without token' do
       before do
-        get api_user_path(employee_user)
+        get api_user_path(actuary_user)
       end
 
-      include_examples "an unauthorized response"
+      it_behaves_like "an unauthorized response"
     end
   end
 
   describe 'PUT /api/users/:id' do
     context 'with valid token' do
-      let(:old_email) { employee_user.email }
+      let(:old_email) { actuary_user.email }
       let(:new_email) { 'employee_new@example.com' }
       let(:update_params) do
         { user: { email: new_email, password: 'newpassword' } }
@@ -127,11 +121,11 @@ RSpec.describe "Users API", type: :request do
 
         it 'updates the user with all permitted attributes' do
           expect {
-            put api_user_path(employee_user),
-                headers: { Authorization: "Bearer #{employee_token}" },
+            put api_user_path(actuary_user),
+                headers: { Authorization: "Bearer #{actuary_user_token}" },
                 params: update_params
-            employee_user.reload
-          }.to change { employee_user.email }.from(old_email).to(new_email)
+            actuary_user.reload
+          }.to change { actuary_user.email }.from(old_email).to(new_email)
 
           expect(response).to have_http_status(:ok)
           response_body = JSON.parse(response.body)
@@ -141,8 +135,8 @@ RSpec.describe "Users API", type: :request do
 
       context 'as an employee updating their own record' do
         before do
-          put api_user_path(employee_user),
-              headers: { Authorization: "Bearer #{employee_token}" },
+          put api_user_path(actuary_user),
+              headers: { Authorization: "Bearer #{actuary_user_token}" },
               params: update_params
         end
 
@@ -154,14 +148,17 @@ RSpec.describe "Users API", type: :request do
       end
 
       context 'as an employee attempting to update another user' do
-
         before do
           put api_user_path(admin_user),
-              headers: { Authorization: "Bearer #{employee_token}" },
+              headers: { Authorization: "Bearer #{actuary_user_token}" },
               params: update_params
         end
 
-        include_examples "an unauthorized response"
+        it_behaves_like "an unauthorized response"
+
+        it "does not change the record" do
+          expect { admin_user.reload }.not_to change { admin_user.attributes }
+        end
       end
     end
 
@@ -170,7 +167,7 @@ RSpec.describe "Users API", type: :request do
         let(:update_params) { { user: { email: '', password: 'newpassword' } } }
 
         before do
-          put api_user_path(employee_user),
+          put api_user_path(actuary_user),
               headers: { Authorization: "Bearer #{admin_token}" },
               params: update_params
         end
@@ -180,26 +177,38 @@ RSpec.describe "Users API", type: :request do
           response_body = JSON.parse(response.body)
           expect(response_body).to have_key('errors')
         end
+
+        it 'does not change the record' do
+          expect { actuary_user.reload }.not_to change { actuary_user.attributes }
+        end
       end
     end
 
     context 'with invalid token' do
       before do
-        put api_user_path(employee_user),
+        put api_user_path(actuary_user),
             headers: { 'Authorization' => 'Bearer invalidtoken123' },
             params: { user: { email: 'foo@example.com' } }
       end
 
-      include_examples "an unauthorized response"
+      it 'does not change the record' do
+        expect { actuary_user.reload }.not_to change { actuary_user.attributes }
+      end
+
+      it_behaves_like "an unauthorized response"
     end
 
     context 'without token' do
       before do
-        put api_user_path(employee_user),
+        put api_user_path(actuary_user),
             params: { user: { email: 'foo@example.com' } }
       end
 
-      include_examples "an unauthorized response"
+      it 'does not change the record' do
+        expect { actuary_user.reload }.not_to change { actuary_user.attributes }
+      end
+
+      it_behaves_like "an unauthorized response"
     end
   end
 
@@ -227,11 +236,18 @@ RSpec.describe "Users API", type: :request do
       context 'as an employee user' do
         before do
           post api_users_path,
-               headers: { Authorization: "Bearer #{employee_token}" },
+               headers: { Authorization: "Bearer #{actuary_user_token}" },
                params: new_user_params
         end
 
-        include_examples "an unauthorized response"
+        it_behaves_like "an unauthorized response"
+
+        it "does not create a new user" do
+          expect { post api_users_path,
+                        headers: { Authorization: "Bearer #{actuary_user_token}" },
+                        params: new_user_params
+          }.not_to change { User.count }
+        end
       end
     end
 
@@ -242,7 +258,14 @@ RSpec.describe "Users API", type: :request do
              params: new_user_params
       end
 
-      include_examples "an unauthorized response"
+      it_behaves_like "an unauthorized response"
+
+      it "does not create a new user" do
+        expect { post api_users_path,
+                      headers: { Authorization: "Bearer invalidtoken123" },
+                      params: new_user_params
+        }.not_to change { User.count }
+      end
     end
 
     context 'without token' do
@@ -251,24 +274,28 @@ RSpec.describe "Users API", type: :request do
              params: new_user_params
       end
 
-      include_examples "an unauthorized response"
+      it_behaves_like "an unauthorized response"
+
+      it "does not create a new user" do
+        expect { post api_users_path,
+                      params: new_user_params
+        }.not_to change { User.count }
+      end
     end
 
     context 'with invalid parameters' do
       let(:invalid_params) { { user: { email: '', password: 'secret' } } }
 
-      before do
-        post api_users_path,
+      it 'returns unprocessable entity status' do
+        expect { post api_users_path,
              headers: { Authorization: "Bearer #{admin_token}" },
              params: invalid_params
-      end
+        }.not_to change { User.count }
 
-      it 'returns unprocessable entity status' do
         expect(response).to have_http_status(:unprocessable_entity)
         response_body = JSON.parse(response.body)
         expect(response_body).to have_key('errors')
       end
     end
   end
-
 end

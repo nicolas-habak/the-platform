@@ -16,10 +16,10 @@ FactoryBot.define do
     end
   end
 
-  factory :employee_user, parent: :user do
+  factory :actuary_user, parent: :user do
     after(:create) do |user|
-      employee_role = Role.find_or_create_by!(name: 'employee')
-      create(:user_role, user: user, role: employee_role)
+      actuary_role = Role.find_or_create_by!(name: "actuary")
+      create(:user_role, user: user, role: actuary_role)
     end
   end
 end

@@ -6,7 +6,7 @@ class SessionsController < ApplicationController
       user.regenerate_token
       render json: { token: user.token }, status: :ok
     else
-      render json: { error: 'Invalid email or password' }, status: :unauthorized
+      render json: { error: "Invalid email or password" }, status: :unauthorized
     end
   end
 end

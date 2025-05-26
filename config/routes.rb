@@ -8,5 +8,15 @@ Rails.application.routes.draw do
   post "/login", to: "sessions#create"
   namespace :api do
     resources :users
+    resources :providers
+    resources :employers do
+      resources :divisions
+      resources :policies
+      resources :employees do
+        resources :core_profiles
+        resources :insurance_profiles
+        resources :dependants
+      end
+    end
   end
 end
