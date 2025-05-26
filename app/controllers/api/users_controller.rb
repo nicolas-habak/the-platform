@@ -44,7 +44,7 @@ module Api
     private
 
     def user_params(user)
-      params.require(:user).permit(policy(user).permitted_attributes)
+      params.require(:user).permit(policy(user)&.permitted_attributes)
     end
   end
 end

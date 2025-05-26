@@ -17,6 +17,10 @@ Rails.application.routes.draw do
         resources :insurance_profiles
         resources :dependants
       end
+
+      resources :bills do
+        resources :billing_entries
+      end
     end
   end
 end

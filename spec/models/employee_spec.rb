@@ -4,7 +4,7 @@ RSpec.describe Employee, type: :model do
   let!(:employer) { create(:employer) }
   let!(:provider) { create(:provider) }
   let!(:policy)   { create(:policy, provider: provider, employer: employer) }
-  let!(:division) { create(:division, employer: employer, policy: policy) }
+  let!(:division) { create(:division, :with_policies, employer: employer) }
   let!(:employee) { create(:employee, employer: employer) }
 
   describe "validations" do

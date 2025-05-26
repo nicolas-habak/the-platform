@@ -4,7 +4,7 @@ RSpec.describe InsuranceProfile, type: :model do
   let!(:employer) { create(:employer) }
   let(:employee) { create(:employee) }
   let!(:policy) { create(:policy, employer: employer) }
-  let!(:division) { create(:division, employer: employer, policy: policy) }
+  let!(:division) { create(:division, :with_policies, employer: employer) }
 
   describe "associations" do
     it { should belong_to(:employee) }

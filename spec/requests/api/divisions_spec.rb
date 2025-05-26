@@ -6,7 +6,7 @@ RSpec.describe "Divisions API", type: :request do
   let!(:employer) { create(:employer) }
   let!(:provider) { create(:provider) }
   let!(:policy)   { create(:policy, provider: provider, employer: employer) }
-  let!(:division) { create(:division, employer: employer, policy: policy) }
+  let!(:division) { create(:division, :with_policies, employer: employer) }
 
   let(:valid_params) do
     {
@@ -14,7 +14,7 @@ RSpec.describe "Divisions API", type: :request do
         name: "New Division",
         code: "ND",
         employer_id: employer.id,
-        policy_id: policy.id
+        policy_ids: [ policy.id ]
       }
     }
   end
@@ -87,6 +87,12 @@ RSpec.describe "Divisions API", type: :request do
         expect {
           post api_employer_divisions_path(employer), params: valid_params, headers: { Authorization: "Bearer #{admin_token}" }
         }.to change { Division.count }.by(1)
+
+        division = Division.last
+        expect(division.name).to eq("New Division")
+        expect(division.code).to eq("ND")
+        expect(division.employer_id).to eq(employer.id)
+        expect(division.policies.count).to eq(1)
 
         expect(response).to have_http_status(:created)
       end

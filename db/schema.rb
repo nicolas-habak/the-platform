@@ -10,7 +10,34 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_23_180847) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_26_183547) do
+  create_table "billing_entries", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "bill_id", null: false
+    t.bigint "insurance_profile_id", null: false
+    t.string "life_benefit"
+    t.decimal "life", precision: 10
+    t.string "health_benefit"
+    t.decimal "health", precision: 10
+    t.string "dental_benefit"
+    t.decimal "dental", precision: 10
+    t.boolean "smoker_benefit"
+    t.decimal "smoker", precision: 10
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["bill_id"], name: "index_billing_entries_on_bill_id"
+    t.index ["insurance_profile_id"], name: "index_billing_entries_on_insurance_profile_id"
+  end
+
+  create_table "bills", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "division_id", null: false
+    t.date "date_issued"
+    t.date "billing_period_start"
+    t.date "billing_period_end"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["division_id"], name: "index_bills_on_division_id"
+  end
+
   create_table "core_profiles", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "employee_id"
     t.string "address"
@@ -38,11 +65,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_180847) do
     t.string "name"
     t.string "code"
     t.bigint "employer_id", null: false
-    t.bigint "policy_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["employer_id"], name: "index_divisions_on_employer_id"
-    t.index ["policy_id"], name: "index_divisions_on_policy_id"
+  end
+
+  create_table "divisions_policies", id: false, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "division_id", null: false
+    t.bigint "policy_id", null: false
+    t.index ["division_id", "policy_id"], name: "index_divisions_policies_on_division_id_and_policy_id"
+    t.index ["policy_id", "division_id"], name: "index_divisions_policies_on_policy_id_and_division_id"
   end
 
   create_table "employees", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -145,8 +177,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_180847) do
     t.index ["token"], name: "index_users_on_token", unique: true
   end
 
+  add_foreign_key "billing_entries", "bills"
+  add_foreign_key "billing_entries", "insurance_profiles"
+  add_foreign_key "bills", "divisions"
   add_foreign_key "divisions", "employers"
-  add_foreign_key "divisions", "policies"
   add_foreign_key "employees", "employers"
   add_foreign_key "employers", "employees", column: "contact_id"
   add_foreign_key "insurance_profiles", "divisions"

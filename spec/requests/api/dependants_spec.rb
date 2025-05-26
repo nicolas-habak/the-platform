@@ -6,7 +6,7 @@ RSpec.describe "Dependants API", type: :request do
   let!(:employer) { create(:employer) }
   let!(:provider) { create(:provider) }
   let!(:policy)   { create(:policy, provider: provider, employer: employer) }
-  let!(:division) { create(:division, employer: employer, policy: policy) }
+  let!(:division) { create(:division, :with_policies, employer: employer) }
   let!(:employee) { create(:employee, employer: employer) }
   let!(:insurance_profile) { create(:insurance_profile, employee: employee, division: division, start_date: Date.today) }
   let!(:dependants) { create_list(:dependant, 3, insurance_profile: insurance_profile) }

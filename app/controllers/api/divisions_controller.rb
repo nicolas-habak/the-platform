@@ -45,7 +45,7 @@ module Api
     private
 
     def division_params
-      params.require(:division).permit(:name, :code, :employer_id, :policy_id)
+      params.require(:division).permit(:name, :code, :employer_id, policy_ids: [])
     end
   end
 end

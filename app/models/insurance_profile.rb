@@ -12,9 +12,29 @@ class InsuranceProfile < ApplicationRecord
   validates :start_date, presence: true
   validate :end_date_after_start_date
 
-  scope :active, -> {
-    where("start_date <= ? AND (end_date IS NULL OR end_date >= ?)", Date.today, Date.today)
+  scope :active, ->(date = Date.current) {
+    where("start_date <= ? AND (end_date IS NULL OR end_date >= ?)", date, date)
   }
+
+  public
+
+  def to_billing_info(date = Date.today)
+    active_policies = division.policies.active(date)
+    return {} if active_policies.blank?
+
+    active_policies.each_with_object({}) do |policy, info|
+      info[:life] = policy.life if policy.life.present? && life
+      if health.in?(%w[single family])
+        info[:health_benefit] = health
+        info[:health] = policy.public_send("health_#{health}") if policy.public_send("health_#{health}").present?
+      end
+
+      if dental.in?(%w[single family])
+        info[:dental_benefit] = dental
+        info[:dental] = policy.public_send("dental_#{dental}") if policy.public_send("dental_#{dental}").present?
+      end
+    end
+  end
 
   private
 
